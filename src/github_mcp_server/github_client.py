@@ -1,13 +1,20 @@
 """GitHub API client wrapper."""
 
 import logging
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from github import Github
 from github.GithubException import GithubException
 from github.Issue import Issue
+from github.IssueComment import IssueComment
 from github.PullRequest import PullRequest
 from github.Repository import Repository
+from github.Branch import Branch
+from github.Commit import Commit
+from github.GitRef import GitRef
+from github.Workflow import Workflow
+from github.WorkflowRun import WorkflowRun
 
 logger = logging.getLogger(__name__)
 
@@ -180,4 +187,209 @@ class GitHubClient:
             }
         except GithubException as e:
             logger.error(f"Failed to get user info: {e}")
+            raise
+    
+    def update_issue(
+        self,
+        repo_name: str,
+        issue_number: int,
+        title: Optional[str] = None,
+        body: Optional[str] = None,
+        state: Optional[str] = None,
+        labels: Optional[List[str]] = None,
+        assignees: Optional[List[str]] = None,
+        state_reason: Optional[str] = None
+    ) -> Issue:
+        """Update an existing issue."""
+        try:
+            repo = self.get_repository(repo_name)
+            issue = repo.get_issue(issue_number)
+            
+            # Build kwargs for edit, only including non-None values
+            kwargs = {}
+            if title is not None:
+                kwargs['title'] = title
+            if body is not None:
+                kwargs['body'] = body
+            if state is not None:
+                kwargs['state'] = state
+            if labels is not None:
+                kwargs['labels'] = labels
+            if assignees is not None:
+                kwargs['assignees'] = assignees
+            if state_reason is not None:
+                kwargs['state_reason'] = state_reason
+            
+            issue.edit(**kwargs)
+            return issue
+        except GithubException as e:
+            logger.error(f"Failed to update issue {issue_number} in {repo_name}: {e}")
+            raise
+    
+    def update_pull_request(
+        self,
+        repo_name: str,
+        pr_number: int,
+        title: Optional[str] = None,
+        body: Optional[str] = None,
+        state: Optional[str] = None,
+        base: Optional[str] = None
+    ) -> PullRequest:
+        """Update an existing pull request."""
+        try:
+            repo = self.get_repository(repo_name)
+            pr = repo.get_pull(pr_number)
+            
+            # Build kwargs for edit, only including non-None values
+            kwargs = {}
+            if title is not None:
+                kwargs['title'] = title
+            if body is not None:
+                kwargs['body'] = body
+            if state is not None:
+                kwargs['state'] = state
+            if base is not None:
+                kwargs['base'] = base
+            
+            pr.edit(**kwargs)
+            return pr
+        except GithubException as e:
+            logger.error(f"Failed to update pull request {pr_number} in {repo_name}: {e}")
+            raise
+    
+    def add_comment(
+        self,
+        repo_name: str,
+        number: int,
+        comment: str
+    ) -> IssueComment:
+        """Add a comment to an issue or pull request."""
+        try:
+            repo = self.get_repository(repo_name)
+            # Both issues and PRs use the same comment system
+            issue = repo.get_issue(number)
+            return issue.create_comment(comment)
+        except GithubException as e:
+            logger.error(f"Failed to add comment to #{number} in {repo_name}: {e}")
+            raise
+    
+    def create_branch(
+        self,
+        repo_name: str,
+        branch_name: str,
+        from_branch: Optional[str] = None
+    ) -> GitRef:
+        """Create a new branch."""
+        try:
+            repo = self.get_repository(repo_name)
+            
+            # Get the source branch ref
+            if from_branch:
+                source_ref = repo.get_git_ref(f"heads/{from_branch}")
+            else:
+                # Use default branch if not specified
+                source_ref = repo.get_git_ref(f"heads/{repo.default_branch}")
+            
+            # Create new branch
+            ref = repo.create_git_ref(
+                ref=f"refs/heads/{branch_name}",
+                sha=source_ref.object.sha
+            )
+            return ref
+        except GithubException as e:
+            logger.error(f"Failed to create branch {branch_name} in {repo_name}: {e}")
+            raise
+    
+    def delete_branch(self, repo_name: str, branch_name: str) -> bool:
+        """Delete a branch."""
+        try:
+            repo = self.get_repository(repo_name)
+            ref = repo.get_git_ref(f"heads/{branch_name}")
+            ref.delete()
+            return True
+        except GithubException as e:
+            logger.error(f"Failed to delete branch {branch_name} in {repo_name}: {e}")
+            raise
+    
+    def list_branches(self, repo_name: str, limit: int = 30) -> List[Branch]:
+        """List repository branches."""
+        try:
+            repo = self.get_repository(repo_name)
+            branches = repo.get_branches()
+            return list(branches[:limit])
+        except GithubException as e:
+            logger.error(f"Failed to list branches in {repo_name}: {e}")
+            raise
+    
+    def get_commits(
+        self,
+        repo_name: str,
+        sha: Optional[str] = None,
+        path: Optional[str] = None,
+        author: Optional[str] = None,
+        since: Optional[datetime] = None,
+        until: Optional[datetime] = None,
+        limit: int = 30
+    ) -> List[Commit]:
+        """Get commit history."""
+        try:
+            repo = self.get_repository(repo_name)
+            
+            # Build kwargs for get_commits
+            kwargs = {}
+            if sha:
+                kwargs['sha'] = sha
+            if path:
+                kwargs['path'] = path
+            if author:
+                kwargs['author'] = author
+            if since:
+                kwargs['since'] = since
+            if until:
+                kwargs['until'] = until
+            
+            commits = repo.get_commits(**kwargs)
+            return list(commits[:limit])
+        except GithubException as e:
+            logger.error(f"Failed to get commits from {repo_name}: {e}")
+            raise
+    
+    def get_workflow_runs(
+        self,
+        repo_name: str,
+        workflow_id: Optional[int] = None,
+        status: Optional[str] = None,
+        branch: Optional[str] = None,
+        limit: int = 30
+    ) -> List[WorkflowRun]:
+        """Get workflow runs."""
+        try:
+            repo = self.get_repository(repo_name)
+            
+            # Build kwargs for get_workflow_runs
+            kwargs = {}
+            if status:
+                kwargs['status'] = status
+            if branch:
+                kwargs['branch'] = branch
+            
+            if workflow_id:
+                workflow = repo.get_workflow(workflow_id)
+                runs = workflow.get_runs(**kwargs)
+            else:
+                runs = repo.get_workflow_runs(**kwargs)
+            
+            return list(runs[:limit])
+        except GithubException as e:
+            logger.error(f"Failed to get workflow runs from {repo_name}: {e}")
+            raise
+    
+    def list_workflows(self, repo_name: str) -> List[Workflow]:
+        """List repository workflows."""
+        try:
+            repo = self.get_repository(repo_name)
+            workflows = repo.get_workflows()
+            return list(workflows)
+        except GithubException as e:
+            logger.error(f"Failed to list workflows in {repo_name}: {e}")
             raise

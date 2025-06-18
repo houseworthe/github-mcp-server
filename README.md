@@ -18,14 +18,31 @@ A Model Context Protocol (MCP) server that provides seamless integration with Gi
 ## Features
 
 ### Tools
+
+#### Issue & PR Management
 - **github_create_issue** - Create new issues in repositories
 - **github_list_issues** - List and filter repository issues
+- **github_update_issue** - Update existing issues (title, body, state, labels, assignees)
 - **github_create_pr** - Create pull requests
 - **github_list_prs** - List and filter pull requests
+- **github_update_pr** - Update existing pull requests (title, body, state, base branch)
+- **github_add_comment** - Add comments to issues or pull requests
+
+#### Code & Repository
 - **github_search_code** - Search for code across GitHub
 - **github_get_file** - Retrieve file contents from repositories
 - **github_get_repo** - Get repository information
 - **github_get_user** - Get user information
+- **github_get_commits** - Get commit history with filtering options
+
+#### Branch Management
+- **github_create_branch** - Create new branches
+- **github_delete_branch** - Delete branches
+- **github_list_branches** - List repository branches
+
+#### GitHub Actions
+- **github_get_workflow_runs** - Get workflow run history and status
+- **github_list_workflows** - List repository workflows
 
 ### Resources
 - `github://repository/{owner}/{repo}` - Repository information and metadata
@@ -139,6 +156,11 @@ Once connected, you can ask Claude to:
 - "Search for 'TODO' comments in the owner/repo codebase"
 - "Get the contents of README.md from owner/repo"
 - "Show me information about the GitHub user 'octocat'"
+- "Update issue #123 in owner/repo to add the 'bug' label"
+- "Add a comment to PR #456 in owner/repo with my code review"
+- "Create a new feature branch called 'feature/new-ui' from main"
+- "Show me the last 10 commits in owner/repo"
+- "Check the status of the latest CI workflow runs"
 
 ### Accessing Resources
 
