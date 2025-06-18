@@ -1,11 +1,7 @@
 {
   "mcpServers": {
-    "github": {
-      "command": "python",
-      "args": ["-m", "github_mcp_server.server"],
-      "env": {
-        "PYTHONPATH": "src"
-      }
+    "github-server": {
+      "command": "./run.sh"
     }
   }
 }
