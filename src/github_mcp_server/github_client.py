@@ -4,8 +4,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from github import Github
-from github import GithubObject
+from github import Github, GithubObject
 from github.Branch import Branch
 from github.Commit import Commit
 from github.GithubException import GithubException
