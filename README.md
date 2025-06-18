@@ -1,6 +1,6 @@
 # GitHub MCP Server
 
-[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/)
+[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green)](https://github.com/modelcontextprotocol)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
@@ -35,7 +35,7 @@ A Model Context Protocol (MCP) server that provides seamless integration with Gi
 ## Installation
 
 ### Prerequisites
-- Python 3.8 or higher
+- Python 3.10 or higher
 - GitHub account with appropriate permissions
 
 ### Quick Start
