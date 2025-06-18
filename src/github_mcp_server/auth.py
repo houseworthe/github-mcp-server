@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class GitHubAuth:
     """Handle GitHub authentication via OAuth or Personal Access Token."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.token: Optional[str] = None
         self.auth_method: Optional[str] = None
 
@@ -59,9 +59,9 @@ class GitHubAuth:
         auth_url = f"https://github.com/login/oauth/authorize?{urlencode(auth_params)}"
 
         # Start local server to receive callback
-        token_future = asyncio.Future()
+        token_future: asyncio.Future[str] = asyncio.Future()
 
-        async def handle_callback(request):
+        async def handle_callback(request: web.Request) -> web.Response:
             """Handle OAuth callback."""
             query_params = request.rel_url.query
 
@@ -139,7 +139,7 @@ class GitHubAuth:
                 if not access_token:
                     raise ValueError("No access token received from GitHub")
 
-                return access_token
+                return str(access_token)
 
     def get_auth_headers(self) -> Dict[str, str]:
         """Get authentication headers for API requests."""

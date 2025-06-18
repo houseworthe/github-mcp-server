@@ -503,7 +503,7 @@ def setup_tools(server: Server, github_client: GitHubClient) -> None:
                 base = arguments.get("base")
                 draft = arguments.get("draft", False)
 
-                if not all([repo, title, head, base]):
+                if not repo or not title or not head or not base:
                     return [
                         types.TextContent(
                             type="text",
@@ -547,7 +547,7 @@ def setup_tools(server: Server, github_client: GitHubClient) -> None:
                             "state": pr.state,
                             "draft": pr.draft,
                             "created_at": pr.created_at.isoformat(),
-                            "updated_at": pr.updated_at.isoformat(),
+                            "updated_at": pr.updated_at.isoformat() if pr.updated_at else None,
                             "html_url": pr.html_url,
                             "head": pr.head.ref,
                             "base": pr.base.ref,
@@ -709,7 +709,7 @@ def setup_tools(server: Server, github_client: GitHubClient) -> None:
                     "number": pr.number,
                     "title": pr.title,
                     "state": pr.state,
-                    "updated_at": pr.updated_at.isoformat(),
+                    "updated_at": pr.updated_at.isoformat() if pr.updated_at else None,
                     "html_url": pr.html_url,
                     "base": pr.base.ref,
                 }
@@ -864,7 +864,7 @@ def setup_tools(server: Server, github_client: GitHubClient) -> None:
                                 "date": commit.commit.committer.date.isoformat(),
                             },
                             "html_url": commit.html_url,
-                            "files_changed": len(commit.files) if commit.files else 0,
+                            "files_changed": commit.files.totalCount if commit.files else 0,
                         }
                     )
 
@@ -881,14 +881,14 @@ def setup_tools(server: Server, github_client: GitHubClient) -> None:
 
                 workflow_id = arguments.get("workflow_id")
                 status = arguments.get("status")
-                branch = arguments.get("branch")
+                branch_name = arguments.get("branch")
                 limit = arguments.get("limit", 30)
 
                 runs = github_client.get_workflow_runs(
                     repo,
                     workflow_id=workflow_id,
                     status=status,
-                    branch=branch,
+                    branch=branch_name,
                     limit=limit,
                 )
 

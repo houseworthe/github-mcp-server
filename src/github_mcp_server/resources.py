@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 
 import mcp.types as types
 from mcp.server.lowlevel import Server
+from pydantic import AnyUrl
 
 from .github_client import GitHubClient
 
@@ -49,8 +50,8 @@ def setup_resources(server: Server, github_client: GitHubClient) -> None:
             if parsed.scheme != "github":
                 return types.ReadResourceResult(
                     contents=[
-                        types.TextResourceContents(
-                            type="text", text=f"Unsupported scheme: {parsed.scheme}"
+                        types.TextResourceContents(uri=AnyUrl(uri),
+                            text=f"Unsupported scheme: {parsed.scheme}"
                         )
                     ]
                 )
@@ -61,8 +62,8 @@ def setup_resources(server: Server, github_client: GitHubClient) -> None:
             if len(path_parts) < 2:
                 return types.ReadResourceResult(
                     contents=[
-                        types.TextResourceContents(
-                            type="text", text="Invalid GitHub URI format"
+                        types.TextResourceContents(uri=AnyUrl(uri),
+                            text="Invalid GitHub URI format"
                         )
                     ]
                 )
@@ -112,16 +113,16 @@ def setup_resources(server: Server, github_client: GitHubClient) -> None:
 
                     return types.ReadResourceResult(
                         contents=[
-                            types.TextResourceContents(
-                                type="text", text=json.dumps(repo_info, indent=2)
+                            types.TextResourceContents(uri=AnyUrl(uri),
+                                text=json.dumps(repo_info, indent=2)
                             )
                         ]
                     )
                 except Exception as e:
                     return types.ReadResourceResult(
                         contents=[
-                            types.TextResourceContents(
-                                type="text", text=f"Error fetching repository: {str(e)}"
+                            types.TextResourceContents(uri=AnyUrl(uri),
+                                text=f"Error fetching repository: {str(e)}"
                             )
                         ]
                     )
@@ -162,16 +163,16 @@ def setup_resources(server: Server, github_client: GitHubClient) -> None:
 
                     return types.ReadResourceResult(
                         contents=[
-                            types.TextResourceContents(
-                                type="text", text=json.dumps(issues_data, indent=2)
+                            types.TextResourceContents(uri=AnyUrl(uri),
+                                text=json.dumps(issues_data, indent=2)
                             )
                         ]
                     )
                 except Exception as e:
                     return types.ReadResourceResult(
                         contents=[
-                            types.TextResourceContents(
-                                type="text", text=f"Error fetching issues: {str(e)}"
+                            types.TextResourceContents(uri=AnyUrl(uri),
+                                text=f"Error fetching issues: {str(e)}"
                             )
                         ]
                     )
@@ -202,7 +203,7 @@ def setup_resources(server: Server, github_client: GitHubClient) -> None:
                                 "head": {"ref": pr.head.ref, "sha": pr.head.sha},
                                 "base": {"ref": pr.base.ref, "sha": pr.base.sha},
                                 "created_at": pr.created_at.isoformat(),
-                                "updated_at": pr.updated_at.isoformat(),
+                                "updated_at": pr.updated_at.isoformat() if pr.updated_at else None,
                                 "closed_at": (
                                     pr.closed_at.isoformat() if pr.closed_at else None
                                 ),
@@ -217,16 +218,15 @@ def setup_resources(server: Server, github_client: GitHubClient) -> None:
 
                     return types.ReadResourceResult(
                         contents=[
-                            types.TextResourceContents(
-                                type="text", text=json.dumps(pulls_data, indent=2)
+                            types.TextResourceContents(uri=AnyUrl(uri),
+                                text=json.dumps(pulls_data, indent=2)
                             )
                         ]
                     )
                 except Exception as e:
                     return types.ReadResourceResult(
                         contents=[
-                            types.TextResourceContents(
-                                type="text",
+                            types.TextResourceContents(uri=AnyUrl(uri),
                                 text=f"Error fetching pull requests: {str(e)}",
                             )
                         ]
@@ -235,8 +235,8 @@ def setup_resources(server: Server, github_client: GitHubClient) -> None:
             else:
                 return types.ReadResourceResult(
                     contents=[
-                        types.TextResourceContents(
-                            type="text", text=f"Unknown resource type: {resource_type}"
+                        types.TextResourceContents(uri=AnyUrl(uri),
+                            text=f"Unknown resource type: {resource_type}"
                         )
                     ]
                 )
@@ -245,6 +245,6 @@ def setup_resources(server: Server, github_client: GitHubClient) -> None:
             logger.error(f"Error reading resource {uri}: {e}")
             return types.ReadResourceResult(
                 contents=[
-                    types.TextResourceContents(type="text", text=f"Error: {str(e)}")
+                    types.TextResourceContents(uri=AnyUrl(uri), text=f"Error: {str(e)}")
                 ]
             )

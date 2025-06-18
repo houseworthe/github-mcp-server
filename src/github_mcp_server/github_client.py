@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from github import Github
+from github import GithubObject
 from github.Branch import Branch
 from github.Commit import Commit
 from github.GithubException import GithubException
@@ -154,7 +155,7 @@ class GitHubClient:
         """Get file content from a repository."""
         try:
             repo = self.get_repository(repo_name)
-            file_content = repo.get_contents(path, ref=ref)
+            file_content = repo.get_contents(path, ref=ref or GithubObject.NotSet)
             if isinstance(file_content, list):
                 raise ValueError(f"Path {path} is a directory, not a file")
             return file_content.decoded_content.decode("utf-8")
@@ -201,7 +202,7 @@ class GitHubClient:
             issue = repo.get_issue(issue_number)
 
             # Build kwargs for edit, only including non-None values
-            kwargs = {}
+            kwargs: Dict[str, Any] = {}
             if title is not None:
                 kwargs["title"] = title
             if body is not None:
@@ -236,7 +237,7 @@ class GitHubClient:
             pr = repo.get_pull(pr_number)
 
             # Build kwargs for edit, only including non-None values
-            kwargs = {}
+            kwargs: Dict[str, Any] = {}
             if title is not None:
                 kwargs["title"] = title
             if body is not None:
@@ -324,7 +325,7 @@ class GitHubClient:
             repo = self.get_repository(repo_name)
 
             # Build kwargs for get_commits
-            kwargs = {}
+            kwargs: Dict[str, Any] = {}
             if sha:
                 kwargs["sha"] = sha
             if path:
@@ -355,7 +356,7 @@ class GitHubClient:
             repo = self.get_repository(repo_name)
 
             # Build kwargs for get_workflow_runs
-            kwargs = {}
+            kwargs: Dict[str, Any] = {}
             if status:
                 kwargs["status"] = status
             if branch:

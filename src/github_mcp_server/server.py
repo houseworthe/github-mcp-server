@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 async def create_server() -> Server:
     """Create and configure the MCP server."""
-    server = Server("github-mcp-server")
+    server: Server = Server("github-mcp-server")
 
     # Handle authentication
     auth = GitHubAuth()
@@ -46,7 +46,7 @@ async def create_server() -> Server:
     return server
 
 
-async def main():
+async def main() -> None:
     """Main entry point for the server."""
     logger.info("Starting GitHub MCP Server...")
 
@@ -69,7 +69,7 @@ async def main():
         )
 
 
-def run():
+def run() -> None:
     """Entry point for the server."""
     asyncio.run(main())
 
