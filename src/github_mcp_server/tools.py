@@ -547,7 +547,9 @@ def setup_tools(server: Server, github_client: GitHubClient) -> None:
                             "state": pr.state,
                             "draft": pr.draft,
                             "created_at": pr.created_at.isoformat(),
-                            "updated_at": pr.updated_at.isoformat() if pr.updated_at else None,
+                            "updated_at": (
+                                pr.updated_at.isoformat() if pr.updated_at else None
+                            ),
                             "html_url": pr.html_url,
                             "head": pr.head.ref,
                             "base": pr.base.ref,
@@ -864,7 +866,9 @@ def setup_tools(server: Server, github_client: GitHubClient) -> None:
                                 "date": commit.commit.committer.date.isoformat(),
                             },
                             "html_url": commit.html_url,
-                            "files_changed": commit.files.totalCount if commit.files else 0,
+                            "files_changed": (
+                                commit.files.totalCount if commit.files else 0
+                            ),
                         }
                     )
 
