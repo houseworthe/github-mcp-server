@@ -2,7 +2,7 @@
 
 import json
 import logging
-from typing import Any, Dict
+from typing import Any
 from urllib.parse import urlparse
 
 import mcp.types as types
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def setup_resources(server: Server, github_client: GitHubClient) -> None:
     """Setup GitHub resources for the MCP server."""
-    
+
     @server.list_resources()
     async def handle_list_resources() -> list[dict[str, Any]]:
         """List available resources."""
@@ -24,22 +24,22 @@ def setup_resources(server: Server, github_client: GitHubClient) -> None:
                 "uri": "github://repository/{owner}/{repo}",
                 "name": "GitHub Repository",
                 "description": "Access GitHub repository information",
-                "mimeType": "application/json"
+                "mimeType": "application/json",
             },
             {
                 "uri": "github://issues/{owner}/{repo}",
                 "name": "GitHub Issues",
                 "description": "Access repository issues",
-                "mimeType": "application/json"
+                "mimeType": "application/json",
             },
             {
                 "uri": "github://pulls/{owner}/{repo}",
                 "name": "GitHub Pull Requests",
                 "description": "Access repository pull requests",
-                "mimeType": "application/json"
-            }
+                "mimeType": "application/json",
+            },
         ]
-    
+
     @server.read_resource()
     async def handle_read_resource(uri: str) -> types.ReadResourceResult:
         """Handle resource reads."""
@@ -48,24 +48,32 @@ def setup_resources(server: Server, github_client: GitHubClient) -> None:
             parsed = urlparse(uri)
             if parsed.scheme != "github":
                 return types.ReadResourceResult(
-                    contents=[types.TextResourceContents(type="text", text=f"Unsupported scheme: {parsed.scheme}")]
+                    contents=[
+                        types.TextResourceContents(
+                            type="text", text=f"Unsupported scheme: {parsed.scheme}"
+                        )
+                    ]
                 )
-            
+
             # Extract path components
             path_parts = parsed.path.strip("/").split("/")
-            
+
             if len(path_parts) < 2:
                 return types.ReadResourceResult(
-                    contents=[types.TextResourceContents(type="text", text="Invalid GitHub URI format")]
+                    contents=[
+                        types.TextResourceContents(
+                            type="text", text="Invalid GitHub URI format"
+                        )
+                    ]
                 )
-            
+
             resource_type = path_parts[0]
-            
+
             if resource_type == "repository" and len(path_parts) >= 3:
                 owner = path_parts[1]
                 repo = path_parts[2]
                 repo_name = f"{owner}/{repo}"
-                
+
                 try:
                     repository = github_client.get_repository(repo_name)
                     repo_info = {
@@ -76,7 +84,11 @@ def setup_resources(server: Server, github_client: GitHubClient) -> None:
                         "clone_url": repository.clone_url,
                         "created_at": repository.created_at.isoformat(),
                         "updated_at": repository.updated_at.isoformat(),
-                        "pushed_at": repository.pushed_at.isoformat() if repository.pushed_at else None,
+                        "pushed_at": (
+                            repository.pushed_at.isoformat()
+                            if repository.pushed_at
+                            else None
+                        ),
                         "size": repository.size,
                         "stargazers_count": repository.stargazers_count,
                         "watchers_count": repository.watchers_count,
@@ -93,99 +105,146 @@ def setup_resources(server: Server, github_client: GitHubClient) -> None:
                         "archived": repository.archived,
                         "disabled": repository.disabled,
                         "visibility": repository.visibility,
-                        "license": repository.license.name if repository.license else None
+                        "license": (
+                            repository.license.name if repository.license else None
+                        ),
                     }
-                    
+
                     return types.ReadResourceResult(
-                        contents=[types.TextResourceContents(type="text", text=json.dumps(repo_info, indent=2))]
+                        contents=[
+                            types.TextResourceContents(
+                                type="text", text=json.dumps(repo_info, indent=2)
+                            )
+                        ]
                     )
                 except Exception as e:
                     return types.ReadResourceResult(
-                        contents=[types.TextResourceContents(type="text", text=f"Error fetching repository: {str(e)}")]
+                        contents=[
+                            types.TextResourceContents(
+                                type="text", text=f"Error fetching repository: {str(e)}"
+                            )
+                        ]
                     )
-            
+
             elif resource_type == "issues" and len(path_parts) >= 3:
                 owner = path_parts[1]
                 repo = path_parts[2]
                 repo_name = f"{owner}/{repo}"
-                
+
                 try:
-                    issues = github_client.list_issues(repo_name, state="all", limit=100)
+                    issues = github_client.list_issues(
+                        repo_name, state="all", limit=100
+                    )
                     issues_data = []
                     for issue in issues:
-                        issues_data.append({
-                            "number": issue.number,
-                            "title": issue.title,
-                            "state": issue.state,
-                            "body": issue.body,
-                            "user": issue.user.login,
-                            "labels": [label.name for label in issue.labels],
-                            "assignees": [assignee.login for assignee in issue.assignees],
-                            "comments": issue.comments,
-                            "created_at": issue.created_at.isoformat(),
-                            "updated_at": issue.updated_at.isoformat(),
-                            "closed_at": issue.closed_at.isoformat() if issue.closed_at else None,
-                            "html_url": issue.html_url
-                        })
-                    
+                        issues_data.append(
+                            {
+                                "number": issue.number,
+                                "title": issue.title,
+                                "state": issue.state,
+                                "body": issue.body,
+                                "user": issue.user.login,
+                                "labels": [label.name for label in issue.labels],
+                                "assignees": [
+                                    assignee.login for assignee in issue.assignees
+                                ],
+                                "comments": issue.comments,
+                                "created_at": issue.created_at.isoformat(),
+                                "updated_at": issue.updated_at.isoformat(),
+                                "closed_at": (
+                                    issue.closed_at.isoformat()
+                                    if issue.closed_at
+                                    else None
+                                ),
+                                "html_url": issue.html_url,
+                            }
+                        )
+
                     return types.ReadResourceResult(
-                        contents=[types.TextResourceContents(type="text", text=json.dumps(issues_data, indent=2))]
+                        contents=[
+                            types.TextResourceContents(
+                                type="text", text=json.dumps(issues_data, indent=2)
+                            )
+                        ]
                     )
                 except Exception as e:
                     return types.ReadResourceResult(
-                        contents=[types.TextResourceContents(type="text", text=f"Error fetching issues: {str(e)}")]
+                        contents=[
+                            types.TextResourceContents(
+                                type="text", text=f"Error fetching issues: {str(e)}"
+                            )
+                        ]
                     )
-            
+
             elif resource_type == "pulls" and len(path_parts) >= 3:
                 owner = path_parts[1]
                 repo = path_parts[2]
                 repo_name = f"{owner}/{repo}"
-                
+
                 try:
-                    pulls = github_client.list_pull_requests(repo_name, state="all", limit=100)
+                    pulls = github_client.list_pull_requests(
+                        repo_name, state="all", limit=100
+                    )
                     pulls_data = []
                     for pr in pulls:
-                        pulls_data.append({
-                            "number": pr.number,
-                            "title": pr.title,
-                            "state": pr.state,
-                            "body": pr.body,
-                            "user": pr.user.login,
-                            "labels": [label.name for label in pr.labels],
-                            "assignees": [assignee.login for assignee in pr.assignees],
-                            "draft": pr.draft,
-                            "head": {
-                                "ref": pr.head.ref,
-                                "sha": pr.head.sha
-                            },
-                            "base": {
-                                "ref": pr.base.ref,
-                                "sha": pr.base.sha
-                            },
-                            "created_at": pr.created_at.isoformat(),
-                            "updated_at": pr.updated_at.isoformat(),
-                            "closed_at": pr.closed_at.isoformat() if pr.closed_at else None,
-                            "merged_at": pr.merged_at.isoformat() if pr.merged_at else None,
-                            "html_url": pr.html_url,
-                            "diff_url": pr.diff_url,
-                            "patch_url": pr.patch_url
-                        })
-                    
+                        pulls_data.append(
+                            {
+                                "number": pr.number,
+                                "title": pr.title,
+                                "state": pr.state,
+                                "body": pr.body,
+                                "user": pr.user.login,
+                                "labels": [label.name for label in pr.labels],
+                                "assignees": [
+                                    assignee.login for assignee in pr.assignees
+                                ],
+                                "draft": pr.draft,
+                                "head": {"ref": pr.head.ref, "sha": pr.head.sha},
+                                "base": {"ref": pr.base.ref, "sha": pr.base.sha},
+                                "created_at": pr.created_at.isoformat(),
+                                "updated_at": pr.updated_at.isoformat(),
+                                "closed_at": (
+                                    pr.closed_at.isoformat() if pr.closed_at else None
+                                ),
+                                "merged_at": (
+                                    pr.merged_at.isoformat() if pr.merged_at else None
+                                ),
+                                "html_url": pr.html_url,
+                                "diff_url": pr.diff_url,
+                                "patch_url": pr.patch_url,
+                            }
+                        )
+
                     return types.ReadResourceResult(
-                        contents=[types.TextResourceContents(type="text", text=json.dumps(pulls_data, indent=2))]
+                        contents=[
+                            types.TextResourceContents(
+                                type="text", text=json.dumps(pulls_data, indent=2)
+                            )
+                        ]
                     )
                 except Exception as e:
                     return types.ReadResourceResult(
-                        contents=[types.TextResourceContents(type="text", text=f"Error fetching pull requests: {str(e)}")]
+                        contents=[
+                            types.TextResourceContents(
+                                type="text",
+                                text=f"Error fetching pull requests: {str(e)}",
+                            )
+                        ]
                     )
-            
+
             else:
                 return types.ReadResourceResult(
-                    contents=[types.TextResourceContents(type="text", text=f"Unknown resource type: {resource_type}")]
+                    contents=[
+                        types.TextResourceContents(
+                            type="text", text=f"Unknown resource type: {resource_type}"
+                        )
+                    ]
                 )
-                
+
         except Exception as e:
             logger.error(f"Error reading resource {uri}: {e}")
             return types.ReadResourceResult(
-                contents=[types.TextResourceContents(type="text", text=f"Error: {str(e)}")]
+                contents=[
+                    types.TextResourceContents(type="text", text=f"Error: {str(e)}")
+                ]
             )

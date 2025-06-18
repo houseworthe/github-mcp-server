@@ -2,15 +2,11 @@
 
 import asyncio
 import logging
-import os
-import sys
-from typing import Any, Dict, List, Optional
 
 import mcp.server.stdio
-import mcp.types as types
+from dotenv import load_dotenv
 from mcp.server.lowlevel import NotificationOptions, Server
 from mcp.server.models import InitializationOptions
-from dotenv import load_dotenv
 
 from .auth import GitHubAuth
 from .github_client import GitHubClient
@@ -22,8 +18,7 @@ load_dotenv()
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -31,7 +26,7 @@ logger = logging.getLogger(__name__)
 async def create_server() -> Server:
     """Create and configure the MCP server."""
     server = Server("github-mcp-server")
-    
+
     # Handle authentication
     auth = GitHubAuth()
     try:
@@ -40,24 +35,24 @@ async def create_server() -> Server:
     except Exception as e:
         logger.error(f"Authentication failed: {e}")
         github_token = None
-    
+
     # Initialize GitHub client
     github_client = GitHubClient(token=github_token)
-    
+
     # Setup server capabilities
     setup_tools(server, github_client)
     setup_resources(server, github_client)
-    
+
     return server
 
 
 async def main():
     """Main entry point for the server."""
     logger.info("Starting GitHub MCP Server...")
-    
+
     # Create server instance
     server = await create_server()
-    
+
     # Run the server
     async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
         await server.run(
@@ -68,9 +63,9 @@ async def main():
                 server_version="0.2.0",
                 capabilities=server.get_capabilities(
                     notification_options=NotificationOptions(),
-                    experimental_capabilities={}
-                )
-            )
+                    experimental_capabilities={},
+                ),
+            ),
         )
 
 
