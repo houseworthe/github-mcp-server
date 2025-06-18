@@ -5,8 +5,8 @@ import logging
 from typing import Any, Dict
 from urllib.parse import urlparse
 
-from mcp.server import Server
-from mcp.server.models import ReadResourceResult, TextContent
+import mcp.types as types
+from mcp.server.lowlevel import Server
 
 from .github_client import GitHubClient
 
@@ -16,23 +16,47 @@ logger = logging.getLogger(__name__)
 def setup_resources(server: Server, github_client: GitHubClient) -> None:
     """Setup GitHub resources for the MCP server."""
     
+    @server.list_resources()
+    async def handle_list_resources() -> list[dict[str, Any]]:
+        """List available resources."""
+        return [
+            {
+                "uri": "github://repository/{owner}/{repo}",
+                "name": "GitHub Repository",
+                "description": "Access GitHub repository information",
+                "mimeType": "application/json"
+            },
+            {
+                "uri": "github://issues/{owner}/{repo}",
+                "name": "GitHub Issues",
+                "description": "Access repository issues",
+                "mimeType": "application/json"
+            },
+            {
+                "uri": "github://pulls/{owner}/{repo}",
+                "name": "GitHub Pull Requests",
+                "description": "Access repository pull requests",
+                "mimeType": "application/json"
+            }
+        ]
+    
     @server.read_resource()
-    async def handle_read_resource(uri: str) -> ReadResourceResult:
+    async def handle_read_resource(uri: str) -> types.ReadResourceResult:
         """Handle resource reads."""
         try:
             # Parse the URI
             parsed = urlparse(uri)
             if parsed.scheme != "github":
-                return ReadResourceResult(
-                    content=[TextContent(text=f"Unsupported scheme: {parsed.scheme}")]
+                return types.ReadResourceResult(
+                    contents=[types.TextResourceContents(type="text", text=f"Unsupported scheme: {parsed.scheme}")]
                 )
             
             # Extract path components
             path_parts = parsed.path.strip("/").split("/")
             
             if len(path_parts) < 2:
-                return ReadResourceResult(
-                    content=[TextContent(text="Invalid GitHub URI format")]
+                return types.ReadResourceResult(
+                    contents=[types.TextResourceContents(type="text", text="Invalid GitHub URI format")]
                 )
             
             resource_type = path_parts[0]
@@ -72,12 +96,12 @@ def setup_resources(server: Server, github_client: GitHubClient) -> None:
                         "license": repository.license.name if repository.license else None
                     }
                     
-                    return ReadResourceResult(
-                        content=[TextContent(text=json.dumps(repo_info, indent=2))]
+                    return types.ReadResourceResult(
+                        contents=[types.TextResourceContents(type="text", text=json.dumps(repo_info, indent=2))]
                     )
                 except Exception as e:
-                    return ReadResourceResult(
-                        content=[TextContent(text=f"Error fetching repository: {str(e)}")]
+                    return types.ReadResourceResult(
+                        contents=[types.TextResourceContents(type="text", text=f"Error fetching repository: {str(e)}")]
                     )
             
             elif resource_type == "issues" and len(path_parts) >= 3:
@@ -104,12 +128,12 @@ def setup_resources(server: Server, github_client: GitHubClient) -> None:
                             "html_url": issue.html_url
                         })
                     
-                    return ReadResourceResult(
-                        content=[TextContent(text=json.dumps(issues_data, indent=2))]
+                    return types.ReadResourceResult(
+                        contents=[types.TextResourceContents(type="text", text=json.dumps(issues_data, indent=2))]
                     )
                 except Exception as e:
-                    return ReadResourceResult(
-                        content=[TextContent(text=f"Error fetching issues: {str(e)}")]
+                    return types.ReadResourceResult(
+                        contents=[types.TextResourceContents(type="text", text=f"Error fetching issues: {str(e)}")]
                     )
             
             elif resource_type == "pulls" and len(path_parts) >= 3:
@@ -147,21 +171,21 @@ def setup_resources(server: Server, github_client: GitHubClient) -> None:
                             "patch_url": pr.patch_url
                         })
                     
-                    return ReadResourceResult(
-                        content=[TextContent(text=json.dumps(pulls_data, indent=2))]
+                    return types.ReadResourceResult(
+                        contents=[types.TextResourceContents(type="text", text=json.dumps(pulls_data, indent=2))]
                     )
                 except Exception as e:
-                    return ReadResourceResult(
-                        content=[TextContent(text=f"Error fetching pull requests: {str(e)}")]
+                    return types.ReadResourceResult(
+                        contents=[types.TextResourceContents(type="text", text=f"Error fetching pull requests: {str(e)}")]
                     )
             
             else:
-                return ReadResourceResult(
-                    content=[TextContent(text=f"Unknown resource type: {resource_type}")]
+                return types.ReadResourceResult(
+                    contents=[types.TextResourceContents(type="text", text=f"Unknown resource type: {resource_type}")]
                 )
                 
         except Exception as e:
             logger.error(f"Error reading resource {uri}: {e}")
-            return ReadResourceResult(
-                content=[TextContent(text=f"Error: {str(e)}")]
+            return types.ReadResourceResult(
+                contents=[types.TextResourceContents(type="text", text=f"Error: {str(e)}")]
             )

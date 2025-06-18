@@ -4,9 +4,8 @@ import json
 import logging
 from typing import Any, Dict
 
-from mcp.server import Server
-from mcp.server.models import CallToolResult, TextContent
-from mcp.types import Tool
+import mcp.types as types
+from mcp.server.lowlevel import Server
 
 from .github_client import GitHubClient
 
@@ -16,8 +15,206 @@ logger = logging.getLogger(__name__)
 def setup_tools(server: Server, github_client: GitHubClient) -> None:
     """Setup GitHub tools for the MCP server."""
     
+    @server.list_tools()
+    async def handle_list_tools() -> list[types.Tool]:
+        """List available tools."""
+        return [
+            types.Tool(
+                name="github_create_issue",
+                description="Create a new issue in a GitHub repository",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "repo": {
+                            "type": "string",
+                            "description": "Repository in format 'owner/repo'"
+                        },
+                        "title": {
+                            "type": "string",
+                            "description": "Issue title"
+                        },
+                        "body": {
+                            "type": "string",
+                            "description": "Issue body content"
+                        },
+                        "labels": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "List of labels to apply"
+                        },
+                        "assignees": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "List of GitHub usernames to assign"
+                        }
+                    },
+                    "required": ["repo", "title"]
+                }
+            ),
+            types.Tool(
+                name="github_list_issues",
+                description="List issues in a GitHub repository",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "repo": {
+                            "type": "string",
+                            "description": "Repository in format 'owner/repo'"
+                        },
+                        "state": {
+                            "type": "string",
+                            "enum": ["open", "closed", "all"],
+                            "description": "Issue state to filter by"
+                        },
+                        "labels": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Labels to filter by"
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "Maximum number of issues to return (default: 30)"
+                        }
+                    },
+                    "required": ["repo"]
+                }
+            ),
+            types.Tool(
+                name="github_create_pr",
+                description="Create a pull request in a GitHub repository",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "repo": {
+                            "type": "string",
+                            "description": "Repository in format 'owner/repo'"
+                        },
+                        "title": {
+                            "type": "string",
+                            "description": "PR title"
+                        },
+                        "body": {
+                            "type": "string",
+                            "description": "PR description"
+                        },
+                        "head": {
+                            "type": "string",
+                            "description": "The name of the branch where your changes are implemented"
+                        },
+                        "base": {
+                            "type": "string",
+                            "description": "The name of the branch you want the changes pulled into"
+                        },
+                        "draft": {
+                            "type": "boolean",
+                            "description": "Create as draft PR (default: false)"
+                        }
+                    },
+                    "required": ["repo", "title", "head", "base"]
+                }
+            ),
+            types.Tool(
+                name="github_list_prs",
+                description="List pull requests in a GitHub repository",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "repo": {
+                            "type": "string",
+                            "description": "Repository in format 'owner/repo'"
+                        },
+                        "state": {
+                            "type": "string",
+                            "enum": ["open", "closed", "all"],
+                            "description": "PR state to filter by"
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "Maximum number of PRs to return (default: 30)"
+                        }
+                    },
+                    "required": ["repo"]
+                }
+            ),
+            types.Tool(
+                name="github_search_code",
+                description="Search for code in GitHub repositories",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "Search query"
+                        },
+                        "repo": {
+                            "type": "string",
+                            "description": "Limit search to specific repository (owner/repo)"
+                        },
+                        "language": {
+                            "type": "string",
+                            "description": "Programming language to filter by"
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "Maximum number of results to return (default: 30)"
+                        }
+                    },
+                    "required": ["query"]
+                }
+            ),
+            types.Tool(
+                name="github_get_file",
+                description="Get file content from a GitHub repository",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "repo": {
+                            "type": "string",
+                            "description": "Repository in format 'owner/repo'"
+                        },
+                        "path": {
+                            "type": "string",
+                            "description": "File path in the repository"
+                        },
+                        "ref": {
+                            "type": "string",
+                            "description": "Branch, tag, or commit SHA (default: main branch)"
+                        }
+                    },
+                    "required": ["repo", "path"]
+                }
+            ),
+            types.Tool(
+                name="github_get_repo",
+                description="Get repository information",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "repo": {
+                            "type": "string",
+                            "description": "Repository in format 'owner/repo'"
+                        }
+                    },
+                    "required": ["repo"]
+                }
+            ),
+            types.Tool(
+                name="github_get_user",
+                description="Get GitHub user information",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "username": {
+                            "type": "string",
+                            "description": "GitHub username (omit for authenticated user)"
+                        }
+                    }
+                }
+            )
+        ]
+    
     @server.call_tool()
-    async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> CallToolResult:
+    async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> list[types.TextContent]:
         """Handle tool calls."""
         try:
             if name == "github_create_issue":
@@ -28,9 +225,7 @@ def setup_tools(server: Server, github_client: GitHubClient) -> None:
                 assignees = arguments.get("assignees", [])
                 
                 if not repo or not title:
-                    return CallToolResult(
-                        content=[TextContent(text="Error: 'repo' and 'title' are required")]
-                    )
+                    return [types.TextContent(type="text", text="Error: 'repo' and 'title' are required")]
                 
                 issue = github_client.create_issue(repo, title, body, labels, assignees)
                 result = {
@@ -41,16 +236,12 @@ def setup_tools(server: Server, github_client: GitHubClient) -> None:
                     "created_at": issue.created_at.isoformat()
                 }
                 
-                return CallToolResult(
-                    content=[TextContent(text=json.dumps(result, indent=2))]
-                )
+                return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
             
             elif name == "github_list_issues":
                 repo = arguments.get("repo")
                 if not repo:
-                    return CallToolResult(
-                        content=[TextContent(text="Error: 'repo' is required")]
-                    )
+                    return [types.TextContent(type="text", text="Error: 'repo' is required")]
                 
                 state = arguments.get("state", "open")
                 labels = arguments.get("labels", [])
@@ -69,9 +260,7 @@ def setup_tools(server: Server, github_client: GitHubClient) -> None:
                         "html_url": issue.html_url
                     })
                 
-                return CallToolResult(
-                    content=[TextContent(text=json.dumps(results, indent=2))]
-                )
+                return [types.TextContent(type="text", text=json.dumps(results, indent=2))]
             
             elif name == "github_create_pr":
                 repo = arguments.get("repo")
@@ -82,9 +271,7 @@ def setup_tools(server: Server, github_client: GitHubClient) -> None:
                 draft = arguments.get("draft", False)
                 
                 if not all([repo, title, head, base]):
-                    return CallToolResult(
-                        content=[TextContent(text="Error: 'repo', 'title', 'head', and 'base' are required")]
-                    )
+                    return [types.TextContent(type="text", text="Error: 'repo', 'title', 'head', and 'base' are required")]
                 
                 pr = github_client.create_pull_request(repo, title, body, head, base, draft)
                 result = {
@@ -96,16 +283,12 @@ def setup_tools(server: Server, github_client: GitHubClient) -> None:
                     "created_at": pr.created_at.isoformat()
                 }
                 
-                return CallToolResult(
-                    content=[TextContent(text=json.dumps(result, indent=2))]
-                )
+                return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
             
             elif name == "github_list_prs":
                 repo = arguments.get("repo")
                 if not repo:
-                    return CallToolResult(
-                        content=[TextContent(text="Error: 'repo' is required")]
-                    )
+                    return [types.TextContent(type="text", text="Error: 'repo' is required")]
                 
                 state = arguments.get("state", "open")
                 limit = arguments.get("limit", 30)
@@ -125,16 +308,12 @@ def setup_tools(server: Server, github_client: GitHubClient) -> None:
                         "base": pr.base.ref
                     })
                 
-                return CallToolResult(
-                    content=[TextContent(text=json.dumps(results, indent=2))]
-                )
+                return [types.TextContent(type="text", text=json.dumps(results, indent=2))]
             
             elif name == "github_search_code":
                 query = arguments.get("query")
                 if not query:
-                    return CallToolResult(
-                        content=[TextContent(text="Error: 'query' is required")]
-                    )
+                    return [types.TextContent(type="text", text="Error: 'query' is required")]
                 
                 repo = arguments.get("repo")
                 language = arguments.get("language")
@@ -142,31 +321,23 @@ def setup_tools(server: Server, github_client: GitHubClient) -> None:
                 
                 results = github_client.search_code(query, repo=repo, language=language, limit=limit)
                 
-                return CallToolResult(
-                    content=[TextContent(text=json.dumps(results, indent=2))]
-                )
+                return [types.TextContent(type="text", text=json.dumps(results, indent=2))]
             
             elif name == "github_get_file":
                 repo = arguments.get("repo")
                 path = arguments.get("path")
                 if not repo or not path:
-                    return CallToolResult(
-                        content=[TextContent(text="Error: 'repo' and 'path' are required")]
-                    )
+                    return [types.TextContent(type="text", text="Error: 'repo' and 'path' are required")]
                 
                 ref = arguments.get("ref")
                 content = github_client.get_file_content(repo, path, ref=ref)
                 
-                return CallToolResult(
-                    content=[TextContent(text=content)]
-                )
+                return [types.TextContent(type="text", text=content)]
             
             elif name == "github_get_repo":
                 repo = arguments.get("repo")
                 if not repo:
-                    return CallToolResult(
-                        content=[TextContent(text="Error: 'repo' is required")]
-                    )
+                    return [types.TextContent(type="text", text="Error: 'repo' is required")]
                 
                 repository = github_client.get_repository(repo)
                 result = {
@@ -191,25 +362,17 @@ def setup_tools(server: Server, github_client: GitHubClient) -> None:
                     "ssh_url": repository.ssh_url
                 }
                 
-                return CallToolResult(
-                    content=[TextContent(text=json.dumps(result, indent=2))]
-                )
+                return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
             
             elif name == "github_get_user":
                 username = arguments.get("username")
                 user_info = github_client.get_user_info(username)
                 
-                return CallToolResult(
-                    content=[TextContent(text=json.dumps(user_info, indent=2))]
-                )
+                return [types.TextContent(type="text", text=json.dumps(user_info, indent=2))]
             
             else:
-                return CallToolResult(
-                    content=[TextContent(text=f"Unknown tool: {name}")]
-                )
+                return [types.TextContent(type="text", text=f"Unknown tool: {name}")]
                 
         except Exception as e:
             logger.error(f"Error executing tool {name}: {e}")
-            return CallToolResult(
-                content=[TextContent(text=f"Error: {str(e)}")]
-            )
+            return [types.TextContent(type="text", text=f"Error: {str(e)}")]
