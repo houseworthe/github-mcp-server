@@ -1,0 +1,17 @@
+{
+  "name": "github-mcp-server",
+  "version": "0.1.0",
+  "description": "A Model Context Protocol server for GitHub integration",
+  "private": true,
+  "scripts": {
+    "build": "echo 'This is a Python project - use pip install instead'"
+  },
+  "keywords": [
+    "mcp",
+    "github",
+    "ai",
+    "llm"
+  ],
+  "author": "",
+  "license": "MIT"
+}
